@@ -1,0 +1,18 @@
+version: "3"
+
+# docker network create ...
+# networks: 
+#     name: 
+#     external: true
+
+services: 
+    mongo-image:
+        image: portainer/portainer
+        container_name: portainer
+        # volumes: 
+        #     - /var/run/docker.sock:/var/run/docker.sock  
+        ports: 
+            - "9000:9000"
+            - "8000":8000"
+    
+    # docker run -d -p 9000:9000 -p 8000:8000 --name portainer --restart always -v /var/run/docker.sock:/var/run/docker.sock -v C:\ProgramData\Portainer:/data portainer/portainer
