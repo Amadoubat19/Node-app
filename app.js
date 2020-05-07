@@ -9,7 +9,7 @@ const userRouter = require('./routes/auth');
 mongoose.connect('mongodb://mongo-image:27017/backend',//'mongodb+srv://tidiBarry19:1998Barry@cluster0-mdzbz.mongodb.net/test?retryWrites=true&w=majority',
   { useNewUrlParser: true,
     useUnifiedTopology: true })
-  .then(() => console.log('Connexion à MongoDB réussie !'))
+  .then(() => console.log('Connexion à MongoDB réussie ! Yesssssssssss!'))
   .catch(() => console.log('Connexion à MongoDB échouée !'));
 
 app.use(express.json());
