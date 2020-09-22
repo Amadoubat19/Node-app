@@ -6,14 +6,14 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const userRouter = require('./routes/auth');
 
-mongoose.connect('mongodb://mongo-image:27017/backend',//'mongodb+srv://tidiBarry19:1998Barry@cluster0-mdzbz.mongodb.net/test?retryWrites=true&w=majority',
+mongoose.connect('mongodb+srv://tidiBarry19:1998Barry@cluster0-mdzbz.mongodb.net/test?retryWrites=true&w=majority',//'mongodb://mongo-image:27017/backend',
   { useNewUrlParser: true,
     useUnifiedTopology: true })
   .then(() => console.log('Connexion à MongoDB réussie ! Yesssssssssss!'))
   .catch(() => console.log('Connexion à MongoDB échouée !'));
 
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 
 
@@ -30,6 +30,7 @@ app.all('*', (req, res, next) => {
 });
 
 app.use((err, req, res, next) => {
+    console.log(err.message);
     err.statusCode = err.statusCode || 500;
     err.status = err.status || 'error';
     res.status(err.statusCode).json({
