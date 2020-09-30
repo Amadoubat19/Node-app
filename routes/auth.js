@@ -13,6 +13,10 @@ router.post('/register', authCtl.register);
 
 router.post('/accept_user', authCtl.accept_user);
 
-router.get('/get-pseudo', authMiddleWare.authentificate, authCtl.getPseudo);
+router.post('/forget_password', authCtl.reset_pass);
+
+router.get('/change_password/:token', authCtl.change_pass);
+
+router.post('/password_changed/', authCtl.pass_changed);
 
 module.exports = router;

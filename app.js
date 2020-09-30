@@ -16,6 +16,8 @@ app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 
+app.set('view engine', 'ejs');
+
 
 app.use('/auth', userRouter);
 
@@ -35,7 +37,7 @@ app.use((err, req, res, next) => {
     err.status = err.status || 'error';
     res.status(err.statusCode).json({
         status: err.status,
-        message: err.message
+        error: err.message
     });
 });
 

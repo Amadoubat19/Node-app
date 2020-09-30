@@ -97,7 +97,7 @@ exports.validate = (req, res, next) => {
       PendingUser.findOne({pseudo: pseudo})
       .then(user_info => {
         if (user_info === null || user_info.validation_code !== validation_code || validation_code === NaN) {
-          console.log('ici')
+          console.log('ici', user_info, user_info.validation_code, validation_code);
           return res.status(401).json({ error: 'Données incorrectes !' });
         }
         bcrypt.hash(req.body.password, 10)
@@ -118,22 +118,17 @@ exports.validate = (req, res, next) => {
                   console.log('Utilisateur supprimé de l\'attente et créé!');
                   res.status(201).json({message: 'user successfully created'})
                 })
-                .catch(error => res.status(400).json({ error }));
+                .catch(error => res.status(400).json({ error: "Suppression ineffective" }));
               })
-              .catch(error => res.status(400).json({ error }));
+              .catch(error => res.status(400).json({ error:"Problème bd" }));
           })
         .catch(error => { console.log(error); res.status(500).json({ error })});
       })
-      .catch(error => { console.log(error); res.status(500).json({ error })});
+      .catch(error => { console.log(error); res.status(500).json({ error: "Problème db" })});
     }
   });
 }
 
-exports.getPseudo = (req, res, next) => {
-  const bearer = req.headers.authorization;
-  const uid = jwt.decode(bearer, 'SECRET_TOKEN').uid;
-  res.json({uid: uid});
-}
 
 exports.login = (req, res, next) => {
   User.findOne({ pseudo: req.body.pseudo })
@@ -163,3 +158,84 @@ exports.login = (req, res, next) => {
     })
     .catch(error => res.status(500).json({ error }));
 };
+
+exports.reset_pass = (req, res, next) => {
+  const mail = req.body.email;
+  User.findOne({email: mail})
+  .then( user => {
+
+    if(!user) {
+      return res.status(401).json({ error: 'Utilisateur non trouvé !' });
+    }
+    var secret = user.password+'-'+user.updatedAt;
+    console.log('secret ==> ', secret)
+    const tok = jwt.sign(
+      {
+        uid: user._id,
+        email: user.email
+      }, secret);
+    const mailOptions = {
+      html: '<p><span>Bonjour</span></p>\
+            <p>Veuillez suivre ce lien pour modifier votre mot de passe, il est valide pendant une heure</p>\
+            <a href="http://localhost:4000/auth/change_password/'+tok+'">Changer le mot de passe</a>',
+      to: mail
+    }
+    sendMail(mailOptions, (error, info) => {
+      if (error) {
+        res.status(400).json({ error });
+      } else {
+        res.status(200).json({message: 'Mail sent'});
+      }
+    });
+  })
+  .catch(error => {console.log('error: ', error);res.status(500).json({ error: 'Utilisateur non reconnu' })})
+}
+
+exports.change_pass = (req, res, next) => {
+  const token = req.params.token;
+  const decode = jwt.decode(token);
+  console.log('decode', decode)
+  const uid = decode.payload.uid;
+  User.findById(uid)
+  .then(user => {
+    var secret = user.password+'-'+user.updated_at;
+    jwt.verify(token, secret, function (err, decoded) {
+      if (err) {
+        res.status(400).json({message: 'Le jeton que vous avez est invalide'})
+      } else {
+        res.render('../views/change_pass',{token: token});
+      }
+    })
+  })
+  .catch(error => res.json(500).json({error: "Utilisateur non reconnu"}))
+}
+
+exports.pass_changed = (req, res, next) => {
+  const token = req.body.token;
+  const decode = jwt.decode(token);
+  const pass = req.body.pass;
+  console.log('decode', decode)
+  const uid = decode.payload.uid;
+  User.findById(uid)
+  .then(user => {
+    var secret = user.password+'-'+user.updated_at;
+    jwt.verify(token, secret, function (err, decoded) {
+      if (err) {
+        res.render('../views/pass_changed', {ok: false});
+        // res.status(400).json({message: 'Le jeton que vous avez est invalide'})
+      } else {
+        bcrypt.hash(pass, 10)
+        .then(hash => {
+          console.log('old user pass ==>',user.password)
+          user.password = hash;
+          user.save()
+          .then((usy) => {console.log('new user ==>', usy); res.render('../views/pass_changed', {ok: true});})
+          .catch(error => res.json(500).json({error}));
+        })
+        .catch(error => res.json(500).json({error}))
+        // res.render('../views/pass_changed');
+      }
+    })
+  })
+  .catch(error => res.json(500).json({error: "Utilisateur non reconnu"}))
+}

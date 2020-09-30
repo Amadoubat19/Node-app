@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Changement de mot de passe</title>
+
+    <!-- CSS (load bootstrap from a CDN) -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+    <style>
+        body { padding-top:50px; }
+    </style>
+</head>
+<body class="container">
+
+<main>
+    <% badClass = "text-center text-danger" %>
+    <% goodClass = "text-center text-success" %>
+    <% if (ok) {%>
+        <h4 id="response" class="<%=goodClass%>"> Votre mot de passe a été modifié avec succès, vous pouvez maintenant vous connecter</h4>
+    <% } else { %>
+        <h4 id="response" class="<%=badClass%>"> Votre mot de passe n'a pas pu être modifié, veuillez rééssayer plus tard</h4>
+    <% } %>
+    <div class="container">
+        <div class="col text-center">
+            <a href="http://localhost:3000/" class="btn btn-success" role="button">Continuer vers le site</a>
+        </div>
+    </div>
+</main>
+</body>
+</html>
