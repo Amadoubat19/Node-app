@@ -20,7 +20,7 @@ exports.register = (req, res, next) => {
         const user = {...req.body}
         token = jwt.sign(
           {pseudo : user.pseudo},
-          'SECRET_TOKEN',
+          process.env.SECRET,
           { expiresIn: '1h' }
         );
         const pending_user = new PendingUser({...req.body, accepted: false, validation_code: Math.floor(Math.random() * 100000), token: token, imageUrl: `${req.protocol}://${req.get('host')}/images/defaultImage.png`});
@@ -35,7 +35,7 @@ exports.register = (req, res, next) => {
                   <input type="hidden" name="email" id="email" value='+req.body.email+'>\
                   <button type="submit" >Valider l\'inscription</button>\
                 </form>',
-          to: 'barrygims@gmail.com'
+          to: req.body.email //'barrygims@gmail.com'
         }
         const func = (error, info) => {
           if (error) {
@@ -52,9 +52,9 @@ exports.register = (req, res, next) => {
   .catch(error => res.status(500).json({ error }));
 }
 
-exports.accept_user = async (req, res, next) => {
+exports.accept_user = (userId, req, res, next) => {
   const mail = req.body.email;
-  PendingUser.findOne({email: req.body.email})
+  PendingUser.findOne({email: mail})
     .then(uname => {
       if (!uname || uname.accepted) {
         return res.status(401).json({ error: 'Utilisateur pas en attente !' });
@@ -85,12 +85,11 @@ exports.accept_user = async (req, res, next) => {
 }
 
 exports.validate = (req, res, next) => {
-  jwt.verify(req.body.token, 'SECRET_TOKEN', function (error, decoded) {
+  jwt.verify(req.body.token, process.env.SECRET, function (error, decoded) {
     if(error) {
-      PendingUser.findOneAndDelete({pseudo: jwt.decode(req.body.token, 'SECRET_TOKEN').pseudo})
-      .then((data) => console.log("deleted user", data))
+      PendingUser.findOneAndDelete({pseudo: jwt.decode(req.body.token, process.env.SECRET).pseudo})
+      .then((data) => res.status(401).json({ error: 'Données incorrectes, votre token ou votre code d\'autorization ont expirés, veuillez soumettre une nouvelle demande d\'inscription !' }))
       .catch((error) => console.log("user not in the doc"));
-      return res.status(401).json({ error: 'Données incorrectes, votre token ou votre code d\'autorization ont expirés, veuillez soumettre une nouvelle demande d\'inscription !' });
     } else {
       const pseudo = decoded.pseudo;
       const validation_code = parseInt(req.body.code, 10);
@@ -120,11 +119,11 @@ exports.validate = (req, res, next) => {
                 })
                 .catch(error => res.status(400).json({ error: "Suppression ineffective" }));
               })
-              .catch(error => res.status(400).json({ error:"Problème bd" }));
+              .catch(error => res.status(500).json({ error}));
           })
         .catch(error => { console.log(error); res.status(500).json({ error })});
       })
-      .catch(error => { console.log(error); res.status(500).json({ error: "Problème db" })});
+      .catch(error => { console.log(error); res.status(500).json({ error })});
     }
   });
 }
@@ -142,14 +141,9 @@ exports.login = (req, res, next) => {
             return res.status(401).json({ error: 'Mot de passe incorrect !' });
           }
           res.status(200).json({
-            /*userId: user._id,
-            pseudo: user.pseudo,
-            imageUrl: user.imageUrl,
-            nom: user.nom,
-            prenom: user.prenom,*/
             token: jwt.sign(
               { userId: user._id },
-              'SECRET_TOKEN',
+              process.env.SECRET,
               { expiresIn: '1h' }
             )  
           });
@@ -172,7 +166,6 @@ exports.reset_pass = (req, res, next) => {
     const tok = jwt.sign(
       {
         uid: user._id,
-        email: user.email
       }, secret);
     const mailOptions = {
       html: '<p><span>Bonjour</span></p>\
@@ -193,37 +186,29 @@ exports.reset_pass = (req, res, next) => {
 
 exports.change_pass = (req, res, next) => {
   const token = req.params.token;
-  const decode = jwt.decode(token);
-  console.log('decode', decode)
-  const uid = decode.payload.uid;
-  User.findById(uid)
-  .then(user => {
-    var secret = user.password+'-'+user.updated_at;
-    jwt.verify(token, secret, function (err, decoded) {
-      if (err) {
-        res.status(400).json({message: 'Le jeton que vous avez est invalide'})
-      } else {
+  jwt.verify(token, process.env.SECRET, function (err, decoded) {
+    if (err) {
+      res.status(400).json({message: 'Le jeton que vous avez est invalide'})
+    } else {
+      User.findOne({_id: decoded.uid})
+      .then(user => {
         res.render('../views/change_pass',{token: token});
-      }
-    })
-  })
-  .catch(error => res.json(500).json({error: "Utilisateur non reconnu"}))
+      })
+      .catch(error => res.json(500).json({error: "Utilisateur non reconnu"}))
+    }
+  });  
 }
 
 exports.pass_changed = (req, res, next) => {
   const token = req.body.token;
-  const decode = jwt.decode(token);
   const pass = req.body.pass;
-  console.log('decode', decode)
-  const uid = decode.payload.uid;
-  User.findById(uid)
-  .then(user => {
-    var secret = user.password+'-'+user.updated_at;
-    jwt.verify(token, secret, function (err, decoded) {
-      if (err) {
-        res.render('../views/pass_changed', {ok: false});
-        // res.status(400).json({message: 'Le jeton que vous avez est invalide'})
-      } else {
+  // const cpass = req.body.cpass;
+  jwt.verify(token, process.env.SECRET, function (err, decoded) {
+    if (err) {
+      res.render('../views/pass_changed', {ok: false});
+    } else {
+      User.findOne({_id: decoded.uid})
+      .then(user => {
         bcrypt.hash(pass, 10)
         .then(hash => {
           console.log('old user pass ==>',user.password)
@@ -233,9 +218,9 @@ exports.pass_changed = (req, res, next) => {
           .catch(error => res.json(500).json({error}));
         })
         .catch(error => res.json(500).json({error}))
-        // res.render('../views/pass_changed');
-      }
-    })
+      })
+      .catch(error => res.json(500).json({error: "Utilisateur non reconnu"}))
+      
+    }
   })
-  .catch(error => res.json(500).json({error: "Utilisateur non reconnu"}))
 }

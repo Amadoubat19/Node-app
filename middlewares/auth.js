@@ -8,16 +8,14 @@ exports.authentificate = (req, res, next) => {
         jwt.verify(bearer, 'SECRET_TOKEN', function (error, decoded) {
             if(error) {
                 return res.status(401).json({
-                    error: "Invalid request" //new Error('Invalid request')
+                    error: "Invalid request" 
                 });
             }
             const userId = decoded.userId;
             if (req.body.userId && req.body.userId !== userId) {
-                console.log('if')
                 throw 'Invalid user ID';
             } else {
-                console.log('else')
-                next();
+                next(userId);
             }
         });   
     } catch {
@@ -26,4 +24,16 @@ exports.authentificate = (req, res, next) => {
             error: new Error('Invalid request')
         })
     }
+}
+
+exports.authAdmin = (userId, req, res, next) => {
+    User.findOne({_id: userId})
+    .then(user => {
+        if(!user || !user.admin) {
+            return res.status(401).json({ error: 'Vous ne pouvez effectuer cette opération !' });
+        } else {
+            next();
+        }
+    })
+    .catch( error => res.status(500).json({error}))
 }

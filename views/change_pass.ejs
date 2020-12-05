@@ -39,7 +39,12 @@
 </main>
 <script>
     var controlConformity = (e) => {
-        if(document.getElementById('pass').value !== document.getElementById('cpass').value) {
+        if(!!document.getElementById('pass').value || !!document.getElementById('cpass').value) {
+            e.preventDefault();
+            document.getElementById('response').innerHTML = "Les élément ne peuvent etre vides"
+            document.getElementById('cpass').classList.toggle('invalid');
+        }
+        else if(document.getElementById('pass').value !== document.getElementById('cpass').value) {
             e.preventDefault();
             document.getElementById('response').innerHTML = "Les mots de passe ne correspondent pas"
             document.getElementById('cpass').classList.toggle('invalid');

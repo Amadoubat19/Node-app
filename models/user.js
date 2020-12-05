@@ -9,6 +9,7 @@ const userSchema = mongoose.Schema(
         prenom: { type: String, required: true},
         password: { type: String, required: true},
         imageUrl: { type: String, required: true},
+        admin: {type: mongoose.Schema.Types.Boolean, default: false}
     },
     { timestamps: { createdAt: 'created_at' }}
 );
