@@ -11,12 +11,12 @@ router.post('/validate', authCtl.validate);
 
 router.post('/register', authCtl.register);
 
-router.post('/accept_user', auth.authentificate, auth.authAdmin, authCtl.accept_user);
+router.post('/accept_user', authCtl.accept_user);
 
 router.post('/forget_password', authCtl.reset_pass);
 
 router.get('/change_password/:token', authCtl.change_pass);
 
-router.post('/password_changed/', authCtl.pass_changed);
+router.post('/password_changed', authCtl.pass_changed);
 
 module.exports = router;

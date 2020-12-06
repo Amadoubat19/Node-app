@@ -3,12 +3,13 @@ const jwt = require('jsonwebtoken');
 exports.authentificate = (req, res, next) => {
     try {
         const auth = req.headers.authorization;
+        console.log(auth);
         const bearer = auth.split(' ');
         console.log('bearer', bearer)
-        jwt.verify(bearer, 'SECRET_TOKEN', function (error, decoded) {
+        jwt.verify(bearer[1], process.env.SECRET, function (error, decoded) {
             if(error) {
                 return res.status(401).json({
-                    error: "Invalid request" 
+                    error//: "Invalid request" 
                 });
             }
             const userId = decoded.userId;
@@ -32,7 +33,7 @@ exports.authAdmin = (userId, req, res, next) => {
         if(!user || !user.admin) {
             return res.status(401).json({ error: 'Vous ne pouvez effectuer cette opération !' });
         } else {
-            next();
+            next(userId);
         }
     })
     .catch( error => res.status(500).json({error}))

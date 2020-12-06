@@ -35,7 +35,7 @@ exports.register = (req, res, next) => {
                   <input type="hidden" name="email" id="email" value='+req.body.email+'>\
                   <button type="submit" >Valider l\'inscription</button>\
                 </form>',
-          to: req.body.email //'barrygims@gmail.com'
+          to: 'barrygims@gmail.com'
         }
         const func = (error, info) => {
           if (error) {
@@ -52,7 +52,7 @@ exports.register = (req, res, next) => {
   .catch(error => res.status(500).json({ error }));
 }
 
-exports.accept_user = (userId, req, res, next) => {
+exports.accept_user = (req, res, next) => {
   const mail = req.body.email;
   PendingUser.findOne({email: mail})
     .then(uname => {
@@ -157,20 +157,18 @@ exports.reset_pass = (req, res, next) => {
   const mail = req.body.email;
   User.findOne({email: mail})
   .then( user => {
-
     if(!user) {
       return res.status(401).json({ error: 'Utilisateur non trouvé !' });
     }
-    var secret = user.password+'-'+user.updatedAt;
-    console.log('secret ==> ', secret)
     const tok = jwt.sign(
       {
         uid: user._id,
-      }, secret);
+        email: user.email
+      }, process.env.SECRET, { expiresIn: '1h' });
     const mailOptions = {
       html: '<p><span>Bonjour</span></p>\
             <p>Veuillez suivre ce lien pour modifier votre mot de passe, il est valide pendant une heure</p>\
-            <a href="http://localhost:4000/auth/change_password/'+tok+'">Changer le mot de passe</a>',
+            <a href="http://localhost:4000/auth/change_password/'+tok+'">Changez votre mot de passe</a>',
       to: mail
     }
     sendMail(mailOptions, (error, info) => {
@@ -190,37 +188,40 @@ exports.change_pass = (req, res, next) => {
     if (err) {
       res.status(400).json({message: 'Le jeton que vous avez est invalide'})
     } else {
-      User.findOne({_id: decoded.uid})
-      .then(user => {
-        res.render('../views/change_pass',{token: token});
-      })
-      .catch(error => res.json(500).json({error: "Utilisateur non reconnu"}))
+      res.render('../views/change_pass',{token: token});
     }
-  });  
+  });
 }
 
 exports.pass_changed = (req, res, next) => {
   const token = req.body.token;
   const pass = req.body.pass;
-  // const cpass = req.body.cpass;
-  jwt.verify(token, process.env.SECRET, function (err, decoded) {
-    if (err) {
-      res.render('../views/pass_changed', {ok: false});
-    } else {
-      User.findOne({_id: decoded.uid})
-      .then(user => {
-        bcrypt.hash(pass, 10)
-        .then(hash => {
-          console.log('old user pass ==>',user.password)
-          user.password = hash;
-          user.save()
-          .then((usy) => {console.log('new user ==>', usy); res.render('../views/pass_changed', {ok: true});})
-          .catch(error => res.json(500).json({error}));
+  const cpass = req.body.cpass;
+  frontUrl = process.env.FRONT_URL;
+  if (pass !== "" && cpass === pass) {
+    jwt.verify(token, process.env.SECRET, function (err, decoded) {
+      if (err) {
+        res.render('../views/pass_changed', {ok: false, front: frontUrl});
+      } else {
+        User.findById(decoded.uid)
+        .then(user => {
+          if(!user) {
+            res.render('../views/pass_changed', {ok: false, front: frontUrl},);
+          } else {
+            bcrypt.hash(pass, 10)
+            .then(hash => {
+              user.password = hash;
+              user.save()
+              .then((usy) => {res.render('../views/pass_changed', {ok: true, front: frontUrl});})
+              .catch(error => res.status(500).json({error}));
+            })
+            .catch(error => res.status(500).json({error}))
+          }
         })
-        .catch(error => res.json(500).json({error}))
-      })
-      .catch(error => res.json(500).json({error: "Utilisateur non reconnu"}))
-      
-    }
-  })
+        .catch(error => res.status(500).json({error: "Utilisateur non reconnu"}));
+      }
+    })
+  } else {
+    res.render('../views/pass_changed', {ok: false, front: frontUrl});
+  }
 }

@@ -5,6 +5,8 @@ const path = require('path');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const userRouter = require('./routes/auth');
+const convRouter = require('./routes/conversation');
+const msgRouter = require('./routes/message');
 
 mongoose.connect('mongodb+srv://tidiBarry19:1998Barry@cluster0-mdzbz.mongodb.net/test?retryWrites=true&w=majority',//'mongodb://mongo-image:27017/backend',
   { useNewUrlParser: true,
@@ -20,6 +22,8 @@ app.set('view engine', 'ejs');
 
 
 app.use('/auth', userRouter);
+app.use('/conversation', convRouter);
+app.use('/message', msgRouter);
 
 app.use('/images', express.static(path.join(__dirname, 'images')));
 
